@@ -3,7 +3,8 @@ info:
   title: backend
   description: ''
   license:
-    name: ''
+    name: CNPL
+    url: https://raw.githubusercontent.com/houndapp/src/refs/heads/main/LICENCE?token=GHSAT0AAAAAADONFUAYBK6ECB5JNROCM6Q22KOPY3A
   version: 0.1.0
 servers:
 - url: https://api.hound.chat/
