@@ -9,7 +9,7 @@ info:
 servers:
 - url: https://api.hound.chat/
   description: production
-- url: http://localhost:8080/
+- url: http://127.0.0.1:8080/
   description: local development
 paths:
   /auth/login/finish:
@@ -110,8 +110,376 @@ paths:
           description: Invalid request body
         '500':
           description: Internal server error
+  /auth/token/refresh:
+    post:
+      tags:
+      - Authentication
+      summary: Refresh JWT token endpoint - Uses middleware to validate refresh token
+      operationId: refresh_token
+      responses:
+        '200':
+          description: new access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: invalid refresh token
+        '500':
+          description: internal server error
+      security:
+      - token: []
+  /auth/token/revoke:
+    post:
+      tags:
+      - auth
+      summary: Revoke refresh token endpoint
+      operationId: revoke_token
+      responses:
+        '200':
+          description: token revoked
+        '401':
+          description: Invalid token
+        '500':
+          description: Internal server error
+      security:
+      - token: []
+  /auth/token/validate:
+    get:
+      tags:
+      - auth
+      summary: Refresh JWT token endpoint - Uses middleware to validate refresh token
+      operationId: validate_token
+      responses:
+        '200':
+          description: access token validated
+        '401':
+          description: invalid refresh token
+        '500':
+          description: internal server error
+      security:
+      - token: []
+  /community:
+    get:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: get_communities
+      parameters:
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      responses:
+        '200':
+          description: list of user's communities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_CommunityModel'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+    post:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: post_community
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCommunityRequest'
+        required: true
+      responses:
+        '200':
+          description: new community created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCommunityResponse'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+  /community/join:
+    put:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: join_community
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: community joined
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+  /community/leave:
+    delete:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: leave_community
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: community left
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+  /community/members:
+    get:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: get_community_members
+      parameters:
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: list of community members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_CommunityMemberModel'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+  /community/space:
+    get:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: get_community_spaces
+      parameters:
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      responses:
+        '200':
+          description: new community created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_CommunitySpaceModel'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't find amy spaces
+      security:
+      - token: []
+    post:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: post_community_space
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommunitySpaceRequest'
+        required: true
+      responses:
+        '200':
+          description: new community created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunitySpaceModel'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't find amy spaces
+      security:
+      - token: []
+    delete:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: delete_community_space
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: community space deleted
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+  /community/space/message:
+    post:
+      tags:
+      - community
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: post_community_space_message
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCommunitySpaceMessageRequest'
+        required: true
+      responses:
+        '200':
+          description: list of community members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunitySpaceMessageModel'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
 components:
   schemas:
+    CommunityMemberModel:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+    CommunityModel:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CommunitySpaceMessageModel:
+      type: object
+      required:
+      - id
+      - space_id
+      - user_id
+      - contents
+      properties:
+        contents:
+          type: string
+        id:
+          type: string
+          format: uuid
+        space_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+    CommunitySpaceModel:
+      type: object
+      required:
+      - id
+      - community_id
+      - name
+      properties:
+        community_id:
+          type: string
+          format: uuid
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CreateCommunityResponse:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CreateCommunitySpaceRequest:
+      type: object
+      required:
+      - community_id
+      - name
+      properties:
+        community_id:
+          type: string
+          format: uuid
+        name:
+          type: string
     FinishLoginRequest:
       type: object
       required:
@@ -158,6 +526,154 @@ components:
           type: string
           format: uuid
           description: The (potential) ID of the user, not assigned until completion.
+    Page_CommunityMemberModel:
+      type: object
+      required:
+      - contents
+      - current
+      - next
+      - prev
+      - total
+      properties:
+        contents:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            properties:
+              id:
+                type: string
+                format: uuid
+        current:
+          type: integer
+          format: int64
+          minimum: 0
+        next:
+          type: integer
+          format: int64
+          minimum: 0
+        prev:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+    Page_CommunityModel:
+      type: object
+      required:
+      - contents
+      - current
+      - next
+      - prev
+      - total
+      properties:
+        contents:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - name
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        current:
+          type: integer
+          format: int64
+          minimum: 0
+        next:
+          type: integer
+          format: int64
+          minimum: 0
+        prev:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+    Page_CommunitySpaceModel:
+      type: object
+      required:
+      - contents
+      - current
+      - next
+      - prev
+      - total
+      properties:
+        contents:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - community_id
+            - name
+            properties:
+              community_id:
+                type: string
+                format: uuid
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        current:
+          type: integer
+          format: int64
+          minimum: 0
+        next:
+          type: integer
+          format: int64
+          minimum: 0
+        prev:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+    PostCommunityRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+    PostCommunitySpaceMessageRequest:
+      type: object
+      required:
+      - space_id
+      - contents
+      properties:
+        contents:
+          type: string
+        space_id:
+          type: string
+          format: uuid
+    RefreshTokenResponse:
+      type: object
+      required:
+      - access_token
+      - expires_in
+      - refresh_token
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int64
+          minimum: 0
+        refresh_token:
+          type: string
     StartLoginRequest:
       type: object
       required:
@@ -206,6 +722,11 @@ components:
           type: string
           format: uuid
           description: The (potential) ID of the user, not assigned until completion.
+  securitySchemes:
+    token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 tags:
 - name: auth
   description: Auth API endpoints
