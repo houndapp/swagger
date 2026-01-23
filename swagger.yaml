@@ -1,3 +1,4 @@
+{"timestamp":"2026-01-23T19:47:44.614427Z","level":"DEBUG","fields":{"message":"cli arguments","self.log_format":"auto"},"target":"backend"}
 openapi: 3.1.0
 info:
   title: backend
