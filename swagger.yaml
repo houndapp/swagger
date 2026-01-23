@@ -1,4 +1,4 @@
-{"timestamp":"2026-01-23T19:47:44.614427Z","level":"DEBUG","fields":{"message":"cli arguments","self.log_format":"auto"},"target":"backend"}
+{"timestamp":"2026-01-23T21:53:54.831380Z","level":"DEBUG","fields":{"message":"cli arguments","self.log_format":"auto"},"target":"backend"}
 openapi: 3.1.0
 info:
   title: backend
@@ -13,6 +13,19 @@ servers:
 - url: http://127.0.0.1:8080/
   description: local development
 paths:
+  /.well-known/webauthn:
+    get:
+      tags:
+      - well-known
+      summary: Begins the ceremony to register a user to hound.chat
+      operationId: webauthn
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebAuthnResponse'
   /auth/login/finish:
     post:
       tags:
@@ -723,6 +736,19 @@ components:
           type: string
           format: uuid
           description: The (potential) ID of the user, not assigned until completion.
+    WebAuthnResponse:
+      type: object
+      required:
+      - rp_id
+      - origins
+      properties:
+        origins:
+          type: array
+          items:
+            type: string
+            format: uri
+        rp_id:
+          type: string
   securitySchemes:
     token:
       type: http
