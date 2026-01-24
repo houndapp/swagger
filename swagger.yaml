@@ -1,4 +1,6 @@
-{"timestamp":"2026-01-24T10:41:58.747635Z","level":"DEBUG","fields":{"message":"cli arguments","self.log_format":"auto"},"target":"backend"}
+  [2m2026-01-24T10:48:33.694400Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+    [2;3mat[0m services/backend/src/lib.rs:107
+
 openapi: 3.1.0
 info:
   title: backend
