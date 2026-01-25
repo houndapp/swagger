@@ -1,4 +1,4 @@
-  [2m2026-01-25T17:46:28.477696Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+  [2m2026-01-25T17:47:49.075229Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
     [2;3mat[0m services/backend/src/lib.rs:107
 
 openapi: 3.1.0
@@ -768,4 +768,8 @@ components:
 tags:
 - name: auth
   description: Auth API endpoints
+- name: community
+  description: Community API endpoints
+- name: well-known
+  description: .well-known endpoints
 
