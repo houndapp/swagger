@@ -1,4 +1,4 @@
-  [2m2026-01-24T12:07:44.821279Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+  [2m2026-01-25T17:46:28.477696Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
     [2;3mat[0m services/backend/src/lib.rs:107
 
 openapi: 3.1.0
@@ -513,17 +513,26 @@ components:
     FinishLoginResponse:
       type: object
       required:
-      - token
+      - access_token
+      - refresh_token
       - user_id
-      - expires_in
+      - access_token_expires_in
+      - refresh_token_expires_in
       properties:
-        expires_in:
+        access_token:
+          type: string
+          description: The encoded JWT blob.
+        access_token_expires_in:
           type: integer
           format: int64
           description: When from the point of issuance the provided token will expire.
-        token:
+        refresh_token:
           type: string
           description: The encoded JWT blob.
+        refresh_token_expires_in:
+          type: integer
+          format: int64
+          description: When from the point of issuance the provided token will expire.
         user_id:
           type: string
           format: uuid
