@@ -1,4 +1,4 @@
-  [2m2026-02-13T13:09:47.885548Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+  [2m2026-02-16T03:07:32.127699Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
     [2;3mat[0m services/backend/src/lib.rs:107
 
 openapi: 3.1.0
@@ -231,6 +231,8 @@ paths:
           description: invalid parameters in request
         '500':
           description: couldn't create community
+      security:
+      - token: []
   /community/join:
     put:
       tags:
