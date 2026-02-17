@@ -1,4 +1,4 @@
-  [2m2026-02-16T03:07:32.127699Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+  [2m2026-02-17T20:42:30.790501Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
     [2;3mat[0m services/backend/src/lib.rs:107
 
 openapi: 3.1.0
@@ -144,7 +144,7 @@ paths:
         '500':
           description: internal server error
       security:
-      - token: []
+      - refreshToken: []
   /auth/token/revoke:
     post:
       tags:
@@ -179,7 +179,7 @@ paths:
     get:
       tags:
       - community
-      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      summary: Retrieves all communities.
       operationId: get_communities
       parameters:
       - name: per_page
@@ -231,6 +231,27 @@ paths:
           description: invalid parameters in request
         '500':
           description: couldn't create community
+      security:
+      - token: []
+    delete:
+      tags:
+      - community
+      summary: 'Deletes a community with the given ID. TODO: verify user has permissions to delete community'
+      operationId: delete_community
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: community deleted
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't delete community
       security:
       - token: []
   /community/join:
@@ -392,9 +413,16 @@ paths:
   /profile/global:
     get:
       tags:
-      - well-known
+      - profile
       summary: Begins the ceremony to register a user to hound.chat
       operationId: get_global_profile
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: ''
@@ -425,6 +453,12 @@ paths:
           type: integer
           format: int64
           minimum: 0
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: new community created
@@ -498,7 +532,7 @@ paths:
     post:
       tags:
       - space
-      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      summary: Post a new message to a community space
       operationId: post_community_space_messages
       parameters:
       - name: space_id
@@ -520,6 +554,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommunitySpaceMessageResponse'
+        '422':
+          description: invalid parameters in request
+        '500':
+          description: couldn't create community
+      security:
+      - token: []
+  /user/community:
+    get:
+      tags:
+      - user
+      summary: Completes the ceremony to login a user to hound.chat with an existing passkey.
+      operationId: get_user_communities
+      parameters:
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      responses:
+        '200':
+          description: list of user's communities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_CommunityModel'
         '422':
           description: invalid parameters in request
         '500':
@@ -929,6 +997,10 @@ components:
         rp_id:
           type: string
   securitySchemes:
+    refreshToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
     token:
       type: http
       scheme: bearer
@@ -940,4 +1012,6 @@ tags:
   description: Community API endpoints
 - name: well-known
   description: .well-known endpoints
+- name: user
+  description: User endpoints
 
