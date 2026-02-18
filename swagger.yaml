@@ -1,4 +1,4 @@
-  [2m2026-02-18T19:02:04.358355Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
+  [2m2026-02-18T23:53:24.176675Z[0m [34mDEBUG[0m [1;34mbackend[0m[34m: [34mcli arguments, [1;34mself.log_format[0m[34m: auto[0m
     [2;3mat[0m services/backend/src/lib.rs:107
 
 openapi: 3.1.0
@@ -656,6 +656,7 @@ components:
       - id
       - name
       - default_space
+      - spaces
       properties:
         default_space:
           type: string
@@ -665,6 +666,8 @@ components:
           format: uuid
         name:
           type: string
+        spaces:
+          $ref: '#/components/schemas/Page_CommunitySpaceModel'
     CommunitySpaceKind:
       type: string
       enum:
@@ -804,6 +807,7 @@ components:
             - id
             - name
             - default_space
+            - spaces
             properties:
               default_space:
                 type: string
@@ -813,6 +817,8 @@ components:
                 format: uuid
               name:
                 type: string
+              spaces:
+                $ref: '#/components/schemas/Page_CommunitySpaceModel'
         current:
           type: integer
           format: int64
@@ -859,6 +865,47 @@ components:
               user_id:
                 type: string
                 format: uuid
+        current:
+          type: integer
+          format: int64
+          minimum: 0
+        next:
+          type: integer
+          format: int64
+          minimum: 0
+        prev:
+          type: integer
+          format: int64
+          minimum: 0
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+    Page_CommunitySpaceModel:
+      type: object
+      required:
+      - contents
+      - current
+      - next
+      - prev
+      - total
+      properties:
+        contents:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - name
+            - kind
+            properties:
+              id:
+                type: string
+                format: uuid
+              kind:
+                $ref: '#/components/schemas/CommunitySpaceKind'
+              name:
+                type: string
         current:
           type: integer
           format: int64
