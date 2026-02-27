@@ -450,8 +450,8 @@ paths:
       parameters:
       - name: id
         in: query
-        description: The ID of the user to look up
-        required: true
+        description: The ID of the user to look up. Defaults to the authenticated user.
+        required: false
         schema:
           type: string
           format: uuid
@@ -500,7 +500,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Page_CompleteCommunitySpace'
+                $ref: '#/components/schemas/Page_CommunitySpaceSummary'
         '422':
           description: invalid spaces query parameters
         '500':
@@ -613,11 +613,11 @@ paths:
           minimum: 0
       responses:
         '200':
-          description: list of messages
+          description: messages and their senders
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Page_CommunitySpaceMessageResponse'
+                $ref: '#/components/schemas/CommunitySpaceMessages'
       security:
       - token: []
     post:
@@ -722,7 +722,17 @@ components:
           type: string
           example: My Community
         spaces:
-          $ref: '#/components/schemas/Page_CommunitySpaceModel'
+          $ref: '#/components/schemas/Page_CommunitySpaceSummary'
+    CommunitySpaceDetails:
+      oneOf:
+      - type: object
+        required:
+        - messages
+        properties:
+          messages:
+            $ref: '#/components/schemas/CommunitySpaceMessages'
+      - type: object
+      description: specific details related to the kind of community space
     CommunitySpaceKind:
       type: string
       description: The type of a community space
@@ -773,6 +783,41 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    CommunitySpaceMessages:
+      type: object
+      description: A message posted in a community space
+      required:
+      - messages
+      - users
+      properties:
+        messages:
+          $ref: '#/components/schemas/Page_CommunitySpaceMessageModel'
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageUserModel'
+    CommunitySpaceSummary:
+      type: object
+      description: A space within a community
+      required:
+      - id
+      - community_id
+      - name
+      - kind
+      properties:
+        community_id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        kind:
+          $ref: '#/components/schemas/CommunitySpaceKind'
+        name:
+          type: string
+          example: general
     CompleteCommunitySpace:
       type: object
       description: A community space
@@ -786,6 +831,10 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+        details:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/CommunitySpaceDetails'
         id:
           type: string
           format: uuid
@@ -897,9 +946,23 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    MessageUserModel:
+      type: object
+      description: A user referenced by messages in a space
+      required:
+      - id
+      - address
+      properties:
+        address:
+          type: string
+          example: alice@example.com
+        id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
     Page_CommunityMemberModel:
       type: object
-      description: A paginated list of items
+      description: A paginated list of CommunityMemberModel entities
       required:
       - contents
       - current
@@ -910,39 +973,36 @@ components:
         contents:
           type: array
           items:
-            type: object
-            description: A member of a community
-            required:
-            - id
-            properties:
-              id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-          example: []
+            $ref: '#/components/schemas/CommunityMemberModel'
+          examples:
+          - []
         current:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         next:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
         prev:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         total:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
     Page_CommunityModel:
       type: object
-      description: A paginated list of items
+      description: A paginated list of CommunityModel entities
       required:
       - contents
       - current
@@ -953,51 +1013,36 @@ components:
         contents:
           type: array
           items:
-            type: object
-            description: A community and its spaces
-            required:
-            - id
-            - name
-            - default_space
-            - spaces
-            properties:
-              default_space:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              name:
-                type: string
-                example: My Community
-              spaces:
-                $ref: '#/components/schemas/Page_CommunitySpaceModel'
-          example: []
+            $ref: '#/components/schemas/CommunityModel'
+          examples:
+          - []
         current:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         next:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
         prev:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         total:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
-    Page_CommunitySpaceMessageResponse:
+    Page_CommunitySpaceMessageModel:
       type: object
-      description: A paginated list of items
+      description: A paginated list of CommunitySpaceMessageModel entities
       required:
       - contents
       - current
@@ -1008,53 +1053,36 @@ components:
         contents:
           type: array
           items:
-            type: object
-            description: A community space message with sender and space context
-            required:
-            - id
-            - space_id
-            - user_id
-            - contents
-            properties:
-              contents:
-                type: string
-                example: Domhran dia duit!
-              id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              space_id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              user_id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-          example: []
+            $ref: '#/components/schemas/CommunitySpaceMessageModel'
+          examples:
+          - []
         current:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         next:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
         prev:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         total:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
-    Page_CommunitySpaceModel:
+    Page_CommunitySpaceSummary:
       type: object
-      description: A paginated list of items
+      description: A paginated list of CommunitySpaceSummary entities
       required:
       - contents
       - current
@@ -1065,97 +1093,32 @@ components:
         contents:
           type: array
           items:
-            type: object
-            description: A space within a community
-            required:
-            - id
-            - name
-            - kind
-            properties:
-              id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              kind:
-                $ref: '#/components/schemas/CommunitySpaceKind'
-              name:
-                type: string
-                example: general
-          example: []
+            $ref: '#/components/schemas/CommunitySpaceSummary'
+          examples:
+          - []
         current:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         next:
           type: integer
           format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
         prev:
           type: integer
           format: int64
-          example: 0
+          examples:
+          - 0
           minimum: 0
         total:
           type: integer
           format: int64
-          example: 1
-          minimum: 0
-    Page_CompleteCommunitySpace:
-      type: object
-      description: A paginated list of items
-      required:
-      - contents
-      - current
-      - next
-      - prev
-      - total
-      properties:
-        contents:
-          type: array
-          items:
-            type: object
-            description: A community space
-            required:
-            - id
-            - community_id
-            - name
-            - kind
-            properties:
-              community_id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              id:
-                type: string
-                format: uuid
-                example: 018c5b6e-0000-7000-0000-000000000001
-              kind:
-                $ref: '#/components/schemas/CommunitySpaceKind'
-              name:
-                type: string
-                example: general
-          example: []
-        current:
-          type: integer
-          format: int64
-          example: 0
-          minimum: 0
-        next:
-          type: integer
-          format: int64
-          example: 1
-          minimum: 0
-        prev:
-          type: integer
-          format: int64
-          example: 0
-          minimum: 0
-        total:
-          type: integer
-          format: int64
-          example: 1
+          examples:
+          - 1
           minimum: 0
     PostCommunityRequest:
       type: object
