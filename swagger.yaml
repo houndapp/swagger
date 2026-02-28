@@ -158,6 +158,8 @@ paths:
                       name: hound.chat
                     timeout: 60000
                 user_id: 018c5b6e-0000-7000-0000-000000000001
+        '409':
+          description: Email already registered — client should log in instead
         '422':
           description: Invalid request body
         '500':
