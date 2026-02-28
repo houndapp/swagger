@@ -653,6 +653,56 @@ paths:
           description: couldn't post message
       security:
       - token: []
+  /space/{space_id}/voice/join:
+    post:
+      tags:
+      - space
+      summary: 'Join a voice space: validates membership, issues a LiveKit token, and broadcasts voice:join.'
+      operationId: post_voice_join
+      parameters:
+      - name: space_id
+        in: path
+        description: The voice space ID to join
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: joined voice channel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceTokenResponse'
+        '403':
+          description: not a community member
+        '404':
+          description: space not found
+        '500':
+          description: couldn't generate voice token
+      security:
+      - token: []
+  /space/{space_id}/voice/leave:
+    post:
+      tags:
+      - space
+      summary: 'Leave a voice space: broadcasts voice:leave to all channel subscribers.'
+      operationId: post_voice_leave
+      parameters:
+      - name: space_id
+        in: path
+        description: The voice space ID to leave
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: left voice channel
+        '404':
+          description: space not found
+      security:
+      - token: []
   /user/community:
     get:
       tags:
@@ -1278,6 +1328,23 @@ components:
           type: string
           format: uuid
           description: The provisional user ID to supply when finishing registration.
+    VoiceTokenResponse:
+      type: object
+      description: Response for joining a voice channel
+      required:
+      - token
+      - url
+      - profile
+      properties:
+        profile:
+          $ref: '#/components/schemas/MergedProfile'
+          description: The joining user's merged profile
+        token:
+          type: string
+          description: LiveKit room access token
+        url:
+          type: string
+          description: LiveKit server URL to connect to
     WebAuthnResponse:
       type: object
       description: WebAuthn relying party configuration
