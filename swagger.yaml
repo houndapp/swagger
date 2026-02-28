@@ -785,7 +785,7 @@ components:
           example: 018c5b6e-0000-7000-0000-000000000001
     CommunitySpaceMessages:
       type: object
-      description: A message posted in a community space
+      description: A page of messages and their merged sender profiles
       required:
       - messages
       - users
@@ -795,7 +795,7 @@ components:
         users:
           type: array
           items:
-            $ref: '#/components/schemas/MessageUserModel'
+            $ref: '#/components/schemas/MergedProfile'
     CommunitySpaceSummary:
       type: object
       description: A space within a community
@@ -946,17 +946,31 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
-    MessageUserModel:
+    MergedProfile:
       type: object
-      description: A user referenced by messages in a space
+      description: |-
+        The merged result of a user's global and community-specific profiles.
+        Community profile fields take precedence over global ones where both are present.
       required:
-      - id
-      - address
+      - user_id
+      - global_profile_id
       properties:
-        address:
+        community_profile_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        global_profile_id:
           type: string
-          example: alice@example.com
-        id:
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        name:
+          type:
+          - string
+          - 'null'
+          example: Aoife
+        user_id:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
