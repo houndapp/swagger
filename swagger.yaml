@@ -954,6 +954,7 @@ components:
       required:
       - user_id
       - global_profile_id
+      - picture
       properties:
         community_profile_id:
           type:
@@ -970,6 +971,9 @@ components:
           - string
           - 'null'
           example: Aoife
+        picture:
+          type: string
+          example: https://picsum.photos/seed/picsum/200
         user_id:
           type: string
           format: uuid
