@@ -655,6 +655,27 @@ paths:
           description: couldn't post message
       security:
       - token: []
+  /space/{space_id}/voice/heartbeat:
+    post:
+      tags:
+      - space
+      summary: |-
+        Keepalive heartbeat: resets the server-side eviction timer for the caller.
+        The client sends this every 10 s; after 30 s of silence the server evicts the user.
+      operationId: post_voice_heartbeat
+      parameters:
+      - name: space_id
+        in: path
+        description: The voice space ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: heartbeat accepted
+      security:
+      - token: []
   /space/{space_id}/voice/join:
     post:
       tags:
