@@ -443,6 +443,55 @@ paths:
           description: couldn't retrieve community profile
       security:
       - token: []
+  /instance:
+    get:
+      tags:
+      - instance
+      summary: Returns the instance settings.
+      operationId: get_instance
+      responses:
+        '200':
+          description: instance settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceModel'
+        '500':
+          description: failed to get instance
+      security:
+      - token: []
+  /instance/provision:
+    post:
+      tags:
+      - instance
+      summary: Marks the instance as provisioned. Returns 409 if already provisioned.
+      operationId: post_provision
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - type: object
+                properties:
+                  default_community:
+                    type:
+                    - string
+                    - 'null'
+                    format: uuid
+      responses:
+        '200':
+          description: instance marked as provisioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceModel'
+        '409':
+          description: instance already provisioned
+        '500':
+          description: failed to provision instance
+      security:
+      - token: []
   /profile/global:
     get:
       tags:
@@ -1019,6 +1068,21 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    InstanceModel:
+      type: object
+      required:
+      - single_community_instance
+      - provisioned
+      properties:
+        default_community:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        provisioned:
+          type: boolean
+        single_community_instance:
+          type: boolean
     MergedProfile:
       type: object
       description: |-
