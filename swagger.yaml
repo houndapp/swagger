@@ -697,7 +697,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommunitySpaceMessageResponse'
+                $ref: '#/components/schemas/CompleteCommunitySpaceMessage'
         '422':
           description: invalid message request body
         '500':
@@ -881,30 +881,6 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
-    CommunitySpaceMessageResponse:
-      type: object
-      description: A community space message with sender and space context
-      required:
-      - id
-      - space_id
-      - user_id
-      - contents
-      properties:
-        contents:
-          type: string
-          example: Domhran dia duit!
-        id:
-          type: string
-          format: uuid
-          example: 018c5b6e-0000-7000-0000-000000000001
-        space_id:
-          type: string
-          format: uuid
-          example: 018c5b6e-0000-7000-0000-000000000001
-        user_id:
-          type: string
-          format: uuid
-          example: 018c5b6e-0000-7000-0000-000000000001
     CommunitySpaceMessages:
       type: object
       description: A page of messages and their merged sender profiles
@@ -966,6 +942,33 @@ components:
         name:
           type: string
           example: general
+    CompleteCommunitySpaceMessage:
+      type: object
+      description: A message posted in a community space
+      required:
+      - id
+      - space_id
+      - user_id
+      - contents
+      - profile
+      properties:
+        contents:
+          type: string
+          example: Domhran dia duit!
+        id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        profile:
+          $ref: '#/components/schemas/MergedProfile'
+        space_id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        user_id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
     FinishLoginRequest:
       type: object
       description: Request body for completing passkey login
