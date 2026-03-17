@@ -1334,6 +1334,16 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    PublicKeyCredentialCreationOptionsJSON:
+      description: |-
+        Schema name mirrors the browser's global `PublicKeyCredentialCreationOptionsJSON` type.
+        The openapi-generator maps this schema name to the browser global — no model is generated.
+      default: null
+    PublicKeyCredentialRequestOptionsJSON:
+      description: |-
+        Schema name mirrors the browser's global `PublicKeyCredentialRequestOptionsJSON` type.
+        The openapi-generator maps this schema name to the browser global — no model is generated.
+      default: null
     RefreshTokenResponse:
       type: object
       description: Response body containing a new access token and refresh token
@@ -1372,7 +1382,12 @@ components:
       properties:
         options:
           type: object
-          description: An opaque object representing the challenge from the server for passkey verification.
+          description: Challenge from the server to pass to navigator.credentials.get()
+          required:
+          - publicKey
+          properties:
+            publicKey:
+              $ref: '#/components/schemas/PublicKeyCredentialRequestOptionsJSON'
           examples:
           - publicKey:
               challenge: base64-challenge
@@ -1408,7 +1423,12 @@ components:
       properties:
         options:
           type: object
-          description: An opaque object representing the challenge from the server for passkey creation.
+          description: Challenge from the server to pass to navigator.credentials.create()
+          required:
+          - publicKey
+          properties:
+            publicKey:
+              $ref: '#/components/schemas/PublicKeyCredentialCreationOptionsJSON'
           examples:
           - publicKey:
               challenge: base64-challenge
