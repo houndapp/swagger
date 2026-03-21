@@ -515,6 +515,28 @@ paths:
                 $ref: '#/components/schemas/ProfileResponse'
       security:
       - token: []
+    patch:
+      tags:
+      - profile
+      summary: Sets the authenticated user's global avatar to a previously uploaded file.
+      operationId: patch_global_avatar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAvatarRequest'
+        required: true
+      responses:
+        '204':
+          description: Avatar updated
+        '401':
+          description: Missing or invalid token
+        '403':
+          description: Upload belongs to a different user
+        '404':
+          description: Upload not found
+      security:
+      - token: []
   /space:
     get:
       tags:
@@ -773,6 +795,68 @@ paths:
           description: left voice channel
         '404':
           description: space not found
+      security:
+      - token: []
+  /upload/attachment:
+    post:
+      tags:
+      - upload
+      operationId: upload_attachment
+      parameters:
+      - name: space_id
+        in: query
+        description: The space this attachment belongs to.
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '201':
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '401':
+          description: Missing or invalid token
+        '413':
+          description: File exceeds size limit
+        '415':
+          description: MIME type not allowed or magic bytes mismatch
+        '422':
+          description: Multipart parse failure
+      security:
+      - token: []
+  /upload/avatar:
+    post:
+      tags:
+      - upload
+      operationId: upload_avatar
+      parameters:
+      - name: community_id
+        in: query
+        description: |-
+          When set, the avatar is associated with this community (stored under `community-avatar/`).
+          When absent, the avatar is a global user avatar (stored under `avatar/`).
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '201':
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '401':
+          description: Missing or invalid token
+        '413':
+          description: File exceeds size limit
+        '415':
+          description: MIME type not allowed or magic bytes mismatch
+        '422':
+          description: Multipart parse failure
       security:
       - token: []
   /user/community:
@@ -1278,6 +1362,16 @@ components:
           examples:
           - 1
           minimum: 0
+    PatchAvatarRequest:
+      type: object
+      description: Request body for setting a profile avatar.
+      required:
+      - avatar_upload_id
+      properties:
+        avatar_upload_id:
+          type: string
+          format: uuid
+          description: The ID returned by `POST /upload/avatar`.
     PostCommunityRequest:
       type: object
       description: Request body for creating a new community
@@ -1438,6 +1532,27 @@ components:
           type: string
           format: uuid
           description: The provisional user ID to supply when finishing registration.
+    UploadResponse:
+      type: object
+      required:
+      - id
+      - url
+      - content_type
+      - size_bytes
+      properties:
+        content_type:
+          type: string
+          example: image/webp
+        id:
+          type: string
+          format: uuid
+          example: 018f1234-0000-7000-0000-000000000001
+        size_bytes:
+          type: integer
+          format: int64
+        url:
+          type: string
+          example: https://cdn.hound.chat/avatar/018c.../018f....webp
     VoiceTokenResponse:
       type: object
       description: Response for joining a voice channel
@@ -1492,6 +1607,8 @@ tags:
   description: Profile endpoints
 - name: space
   description: Community space endpoints
+- name: upload
+  description: File upload endpoints
 - name: well-known
   description: .well-known endpoints
 - name: user
