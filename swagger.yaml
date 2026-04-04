@@ -414,6 +414,36 @@ paths:
           description: couldn't find community
       security:
       - token: []
+  /community/{id}/member/{user_id}:
+    delete:
+      tags:
+      - community
+      summary: Kicks a user from the community.
+      operationId: kick_community_member
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: path
+        description: User ID to kick
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: user kicked
+        '400':
+          description: cannot kick self or last organiser
+        '403':
+          description: missing ManageUsers permission
+      security:
+      - token: []
   /community/{id}/profile:
     get:
       tags:
@@ -441,6 +471,254 @@ paths:
           description: invalid community profile request
         '500':
           description: couldn't retrieve community profile
+      security:
+      - token: []
+  /community/{id}/role:
+    post:
+      tags:
+      - community
+      summary: Creates a new role in the community.
+      operationId: post_role
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+        '403':
+          description: missing ManageRoles permission
+      security:
+      - token: []
+  /community/{id}/role/{role_id}:
+    delete:
+      tags:
+      - community
+      summary: Deletes a role. Cannot delete @organisers or @everyone.
+      operationId: delete_role
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: path
+        description: Role ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: role deleted
+        '400':
+          description: cannot delete @organisers or @everyone
+        '403':
+          description: missing ManageRoles permission
+        '404':
+          description: role not found
+      security:
+      - token: []
+    patch:
+      tags:
+      - community
+      summary: Renames a role.
+      operationId: patch_role
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: path
+        description: Role ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+        '400':
+          description: cannot rename @organisers or @everyone
+        '403':
+          description: missing ManageRoles permission
+        '404':
+          description: role not found
+      security:
+      - token: []
+  /community/{id}/role/{role_id}/member:
+    post:
+      tags:
+      - community
+      summary: Adds a user to a role.
+      operationId: post_role_member
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: path
+        description: Role ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostRoleMemberRequest'
+        required: true
+      responses:
+        '200':
+          description: member added to role
+        '400':
+          description: cannot manually add to @everyone
+        '403':
+          description: missing ManageRoles permission
+        '404':
+          description: role not found
+      security:
+      - token: []
+  /community/{id}/role/{role_id}/member/{user_id}:
+    delete:
+      tags:
+      - community
+      summary: Removes a user from a role.
+      operationId: delete_role_member
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: path
+        description: Role ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: path
+        description: User ID to remove
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: member removed from role
+        '400':
+          description: cannot remove last organiser, or cannot remove from @everyone
+        '403':
+          description: missing ManageRoles permission
+        '404':
+          description: role not found
+      security:
+      - token: []
+  /community/{id}/role/{role_id}/permissions:
+    put:
+      tags:
+      - community
+      summary: Replaces all permissions for a role (full replace, not a patch).
+      operationId: put_role_permissions
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: path
+        description: Role ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRolePermissionsRequest'
+        required: true
+      responses:
+        '200':
+          description: permissions updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+        '400':
+          description: cannot set permissions on @organisers
+        '403':
+          description: missing ManageRoles permission
+        '404':
+          description: role not found
+      security:
+      - token: []
+  /community/{id}/roles:
+    get:
+      tags:
+      - community
+      summary: Lists all roles in a community.
+      operationId: get_roles
+      parameters:
+      - name: id
+        in: path
+        description: Community ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: list of roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleResponse'
       security:
       - token: []
   /instance:
@@ -490,6 +768,33 @@ paths:
           description: instance already provisioned
         '500':
           description: failed to provision instance
+      security:
+      - token: []
+  /instance/user/{user_id}/permissions:
+    put:
+      tags:
+      - instance
+      summary: Replaces the instance-level permissions for a user. Requires `ManageInstance`.
+      operationId: put_user_permissions
+      parameters:
+      - name: user_id
+        in: path
+        description: The user whose instance permissions to set
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutUserPermissionsRequest'
+        required: true
+      responses:
+        '200':
+          description: permissions updated
+        '403':
+          description: missing ManageInstance permission
       security:
       - token: []
   /profile/global:
@@ -654,14 +959,46 @@ paths:
           description: couldn't find space
       security:
       - token: []
-  /space/{space_id}/message:
+    patch:
+      tags:
+      - space
+      summary: Renames or toggles the private flag on a community space.
+      operationId: patch_community_space
+      parameters:
+      - name: id
+        in: path
+        description: Space ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCommunitySpaceRequest'
+        required: true
+      responses:
+        '200':
+          description: space updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteCommunitySpace'
+        '403':
+          description: missing ManageSpaces permission
+        '404':
+          description: space not found
+      security:
+      - token: []
+  /space/{id}/message:
     get:
       tags:
       - space
       summary: Retrieves messages from a community space.
       operationId: get_community_space_messages
       parameters:
-      - name: space_id
+      - name: id
         in: path
         description: The ID of the space to retrieve messages from
         required: true
@@ -699,7 +1036,7 @@ paths:
       summary: Post a new message to a community space
       operationId: post_community_space_message
       parameters:
-      - name: space_id
+      - name: id
         in: path
         description: The ID of the space to post the message to
         required: true
@@ -724,6 +1061,86 @@ paths:
           description: invalid message request body
         '500':
           description: couldn't post message
+      security:
+      - token: []
+  /space/{id}/message/{message_id}:
+    patch:
+      tags:
+      - space
+      summary: Edit an existing message. The previous content is saved to message history.
+      operationId: patch_community_space_message
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the space containing the message
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: message_id
+        in: path
+        description: The ID of the message to edit
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: Updated message content
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCommunitySpaceMessageRequest'
+        required: true
+      responses:
+        '200':
+          description: message updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteCommunitySpaceMessage'
+        '403':
+          description: not the message author
+        '404':
+          description: message not found
+        '422':
+          description: invalid message contents
+        '500':
+          description: couldn't update message
+      security:
+      - token: []
+  /space/{id}/overwrites:
+    put:
+      tags:
+      - space
+      summary: |-
+        Replaces all permission overwrites for a channel (full replace, not a patch).
+        Only channel-applicable permissions (`channels:view`, `messages:send`,
+        `messages:history`, `messages:manage`) are accepted; community-only permissions
+        are rejected with 400.
+      operationId: put_space_overwrites
+      parameters:
+      - name: id
+        in: path
+        description: Space ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutSpaceOverwritesRequest'
+        required: true
+      responses:
+        '200':
+          description: overwrites updated
+        '400':
+          description: non-channel-applicable permission in overwrite
+        '403':
+          description: missing ManageChannels permission
+        '404':
+          description: space not found
       security:
       - token: []
   /space/{space_id}/voice/heartbeat:
@@ -897,6 +1314,28 @@ paths:
       - token: []
 components:
   schemas:
+    AttachmentModel:
+      type: object
+      description: An attachment associated with a message
+      required:
+      - id
+      - url
+      - content_type
+      - size_bytes
+      properties:
+        content_type:
+          type: string
+          example: image/png
+        id:
+          type: string
+          format: uuid
+          example: 018c5b6e-0000-7000-0000-000000000001
+        size_bytes:
+          type: integer
+          format: int64
+        url:
+          type: string
+          example: https://cdn.hound.chat/attachment/...
     CommunityMemberModel:
       type: object
       description: A member of a community
@@ -948,15 +1387,26 @@ components:
       example: Text
     CommunitySpaceMessageModel:
       type: object
-      description: A message posted in a community space
+      description: A message posted in a community space, as returned by the API
       required:
       - id
       - user_id
       - contents
+      - attachments
       properties:
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentModel'
         contents:
           type: string
           example: Domhran dia duit!
+        edited_at:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Unix timestamp (ms) of the last edit, or null if never edited.
         id:
           type: string
           format: uuid
@@ -1035,10 +1485,21 @@ components:
       - user_id
       - contents
       - profile
+      - attachments
       properties:
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentModel'
         contents:
           type: string
           example: Domhran dia duit!
+        edited_at:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Unix timestamp (ms) of the last edit, or null if never edited.
         id:
           type: string
           format: uuid
@@ -1170,6 +1631,14 @@ components:
           type: boolean
         single_community_instance:
           type: boolean
+    InstancePermission:
+      type: string
+      description: |-
+        Instance-level permissions — scoped to the server instance, not any community.
+        Stored in `instance_user_permission`.
+      enum:
+      - ManageCommunities
+      - ManageInstance
     MergedProfile:
       type: object
       description: |-
@@ -1372,6 +1841,47 @@ components:
           type: string
           format: uuid
           description: The ID returned by `POST /upload/avatar`.
+    PatchCommunitySpaceMessageRequest:
+      type: object
+      description: Request body for editing an existing message
+      required:
+      - contents
+      properties:
+        contents:
+          type: string
+          description: The updated text content
+          example: Hello, world! (edited)
+    PatchCommunitySpaceRequest:
+      type: object
+      description: Request body for updating a community space
+      properties:
+        is_private:
+          type:
+          - boolean
+          - 'null'
+        name:
+          type:
+          - string
+          - 'null'
+    PatchRoleRequest:
+      type: object
+      description: Request to rename a role
+      required:
+      - name
+      properties:
+        name:
+          type: string
+    Permission:
+      type: string
+      enum:
+      - ManageCommunity
+      - ManageChannels
+      - ManageUsers
+      - ManageRoles
+      - ViewChannels
+      - SendMessages
+      - ReadHistory
+      - ManageMessages
     PostCommunityRequest:
       type: object
       description: Request body for creating a new community
@@ -1388,6 +1898,12 @@ components:
       required:
       - contents
       properties:
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Upload IDs to attach to the message
         contents:
           type: string
           description: The text content of the message
@@ -1404,11 +1920,33 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+        is_private:
+          type:
+          - boolean
+          - 'null'
+          description: Whether this channel is private (invite-only). Defaults to false.
         kind:
           $ref: '#/components/schemas/CommunitySpaceKind'
         name:
           type: string
           example: general
+    PostRoleMemberRequest:
+      type: object
+      description: Request to add a member to a role
+      required:
+      - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+    PostRoleRequest:
+      type: object
+      description: Request to create a new role
+      required:
+      - name
+      properties:
+        name:
+          type: string
     ProfileResponse:
       type: object
       description: A user's profile
@@ -1438,6 +1976,41 @@ components:
         Schema name mirrors the browser's global `PublicKeyCredentialRequestOptionsJSON` type.
         The openapi-generator maps this schema name to the browser global — no model is generated.
       default: null
+    PutRolePermissionsRequest:
+      type: object
+      description: Request to replace a role's permissions
+      required:
+      - permissions
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+    PutSpaceOverwritesRequest:
+      type: object
+      description: Request body for `PUT /{id}/overwrites` — full replace of all overwrites for the space.
+      required:
+      - role_overwrites
+      - user_overwrites
+      properties:
+        role_overwrites:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleOverwrite'
+        user_overwrites:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserOverwrite'
+    PutUserPermissionsRequest:
+      type: object
+      description: Request body for setting a user's instance-level permissions.
+      required:
+      - permissions
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstancePermission'
     RefreshTokenResponse:
       type: object
       description: Response body containing a new access token and refresh token
@@ -1457,6 +2030,49 @@ components:
         refresh_token:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMThjNWI2ZS0wMDAwLTcwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0eXAiOiJyZWZyZXNoIn0.example
+    RoleOverwrite:
+      type: object
+      description: A single permission overwrite entry for a role.
+      required:
+      - role_id
+      - permission
+      - allow
+      properties:
+        allow:
+          type: boolean
+          description: '`true` = allow; `false` = deny.'
+        permission:
+          $ref: '#/components/schemas/Permission'
+        role_id:
+          type: string
+          format: uuid
+    RoleResponse:
+      type: object
+      description: A community role with its permissions
+      required:
+      - id
+      - community_id
+      - name
+      - is_organisers
+      - is_everyone
+      - permissions
+      properties:
+        community_id:
+          type: string
+          format: uuid
+        id:
+          type: string
+          format: uuid
+        is_everyone:
+          type: boolean
+        is_organisers:
+          type: boolean
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
     StartLoginRequest:
       type: object
       description: Request body for starting passkey login
@@ -1553,6 +2169,22 @@ components:
         url:
           type: string
           example: https://cdn.hound.chat/avatar/018c.../018f....webp
+    UserOverwrite:
+      type: object
+      description: A single permission overwrite entry for a user.
+      required:
+      - user_id
+      - permission
+      - allow
+      properties:
+        allow:
+          type: boolean
+          description: '`true` = allow; `false` = deny.'
+        permission:
+          $ref: '#/components/schemas/Permission'
+        user_id:
+          type: string
+          format: uuid
     VoiceTokenResponse:
       type: object
       description: Response for joining a voice channel
