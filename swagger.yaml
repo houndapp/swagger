@@ -1168,7 +1168,13 @@ paths:
     post:
       tags:
       - space
-      summary: 'Join a voice space: validates membership, issues a LiveKit token, and broadcasts voice:join.'
+      summary: 'Join a voice space: validates membership, issues a relay token, and broadcasts voice:join.'
+      description: |-
+        The response includes:
+        * `relay_token` — a short-lived HMAC-SHA256 token the client presents to the SFU on connect.
+        * `relay_url` — the iroh relay URL; returned by the server so clients never hardcode it.
+        * `peers` — other participants already in the channel, so the client can render their avatars
+          before any media arrives.
       operationId: post_voice_join
       parameters:
       - name: space_id
@@ -1184,13 +1190,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VoiceTokenResponse'
+                $ref: '#/components/schemas/VoiceJoinResponse'
         '403':
           description: not a community member
         '404':
           description: space not found
         '500':
-          description: couldn't generate voice token
+          description: couldn't generate relay token
       security:
       - token: []
   /space/{space_id}/voice/leave:
@@ -2185,23 +2191,79 @@ components:
         user_id:
           type: string
           format: uuid
-    VoiceTokenResponse:
+    VoiceJoinResponse:
       type: object
-      description: Response for joining a voice channel
+      description: |-
+        Response for joining a voice channel.
+
+        The client uses this to:
+        1. Present `relay_token` to the SFU on connect (proves they are allowed in).
+        2. Configure their iroh endpoint to use `relay_url` for NAT traversal.
+        3. Render the participant list with `peers` before any media arrives.
       required:
-      - token
-      - url
       - profile
+      - relay_url
+      - relay_token
+      - peers
       properties:
+        peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoicePeerInfo'
+          description: |-
+            Other participants already in the channel at the time of joining.
+            Populated from the in-memory voice-participant registry.
         profile:
           $ref: '#/components/schemas/MergedProfile'
-          description: The joining user's merged profile
-        token:
+          description: The joining user's merged community profile (name, avatar, etc.).
+        relay_token:
           type: string
-          description: LiveKit room access token
-        url:
+          description: |-
+            Short-lived HMAC-SHA256 token (15 min TTL) that proves this user
+            may connect to the SFU for the given voice channel.
+
+            Format: `{user_id}:{space_id}:{expiry_unix_secs}:{hex_mac}`
+        relay_url:
           type: string
-          description: LiveKit server URL to connect to
+          description: |-
+            iroh relay URL. Clients must not hardcode this value — use whatever
+            the server returns here so that changing relay infrastructure only
+            requires a backend deploy, not a client release.
+        sfu_node_id:
+          type:
+          - string
+          - 'null'
+          description: |-
+            iroh node ID of the SFU (hex-encoded public key).
+
+            `None` when the backend is not configured with `SFU_NODE_ID` (e.g.
+            in development without a running SFU). Clients skip the direct QUIC
+            connection when this is absent.
+    VoicePeerInfo:
+      type: object
+      description: |-
+        Minimal information about a voice channel participant.
+
+        Clients use this to render participant avatars and names before any
+        media arrives. The SFU assigns its own `peer_id` per connection; we
+        don't include that here because clients only need the iroh connection
+        to the SFU, not per-peer node IDs.
+      required:
+      - user_id
+      - picture
+      properties:
+        name:
+          type:
+          - string
+          - 'null'
+          description: Display name (from community profile, falls back to global profile).
+        picture:
+          type: string
+          description: Avatar URL.
+        user_id:
+          type: string
+          format: uuid
+          description: Stable UUID for this user. Matches the `user_id` in socket.io events.
     WebAuthnResponse:
       type: object
       description: WebAuthn relying party configuration
@@ -2245,4 +2307,3 @@ tags:
   description: .well-known endpoints
 - name: user
   description: User endpoints
-
