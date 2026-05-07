@@ -2275,7 +2275,6 @@ components:
           type: array
           items:
             type: string
-            format: uri
           example:
           - https://hound.chat
         rp_id:
