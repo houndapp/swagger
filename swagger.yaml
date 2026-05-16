@@ -903,7 +903,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommunitySpaceMessageModel'
+                $ref: '#/components/schemas/CompleteCommunitySpace'
         '422':
           description: invalid space creation request
         '500':
@@ -1429,7 +1429,45 @@ components:
       - users
       properties:
         messages:
-          $ref: '#/components/schemas/Page_CommunitySpaceMessageModel'
+          type: object
+          description: A paginated list of CommunitySpaceMessageModel entities
+          required:
+          - contents
+          - current
+          - next
+          - prev
+          - total
+          properties:
+            contents:
+              type: array
+              items:
+                $ref: '#/components/schemas/CommunitySpaceMessageModel'
+              examples:
+              - []
+            current:
+              type: integer
+              format: int64
+              examples:
+              - 0
+              minimum: 0
+            next:
+              type: integer
+              format: int64
+              examples:
+              - 1
+              minimum: 0
+            prev:
+              type: integer
+              format: int64
+              examples:
+              - 0
+              minimum: 0
+            total:
+              type: integer
+              format: int64
+              examples:
+              - 1
+              minimum: 0
         users:
           type: array
           items:
@@ -1731,46 +1769,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CommunityModel'
-          examples:
-          - []
-        current:
-          type: integer
-          format: int64
-          examples:
-          - 0
-          minimum: 0
-        next:
-          type: integer
-          format: int64
-          examples:
-          - 1
-          minimum: 0
-        prev:
-          type: integer
-          format: int64
-          examples:
-          - 0
-          minimum: 0
-        total:
-          type: integer
-          format: int64
-          examples:
-          - 1
-          minimum: 0
-    Page_CommunitySpaceMessageModel:
-      type: object
-      description: A paginated list of CommunitySpaceMessageModel entities
-      required:
-      - contents
-      - current
-      - next
-      - prev
-      - total
-      properties:
-        contents:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommunitySpaceMessageModel'
           examples:
           - []
         current:
