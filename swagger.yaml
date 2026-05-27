@@ -1143,6 +1143,41 @@ paths:
           description: space not found
       security:
       - token: []
+  /space/{space_id}/voice/confirm:
+    post:
+      tags:
+      - space
+      summary: Confirm a voice join after the SFU handshake completes.
+      description: |-
+        Called by the Tauri client once it has connected to the SFU and received
+        its SFU-assigned `peer_id`. This is deliberately a separate step from
+        `POST /voice/join` so that the `voice:join` socket event (broadcast to all
+        other channel participants) is only emitted when the joining client is
+        actually ready to send and receive media. The event carries `sfu_peer_id`
+        so recipients can immediately map incoming SFU frames to a user UUID —
+        no separate mapping event or race window.
+      operationId: post_voice_confirm
+      parameters:
+      - name: space_id
+        in: path
+        description: The voice space ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostVoiceConfirmRequest'
+        required: true
+      responses:
+        '200':
+          description: join confirmed and broadcast to channel
+        '404':
+          description: not currently registered in this voice channel
+      security:
+      - token: []
   /space/{space_id}/voice/heartbeat:
     post:
       tags:
@@ -1951,6 +1986,15 @@ components:
       properties:
         name:
           type: string
+    PostVoiceConfirmRequest:
+      type: object
+      required:
+      - sfu_peer_id
+      properties:
+        sfu_peer_id:
+          type: integer
+          format: int32
+          minimum: 0
     ProfileResponse:
       type: object
       description: A user's profile
