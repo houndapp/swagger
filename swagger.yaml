@@ -1988,12 +1988,17 @@ components:
           type: string
     PostVoiceConfirmRequest:
       type: object
-      required:
-      - sfu_peer_id
       properties:
         sfu_peer_id:
-          type: integer
+          type:
+          - integer
+          - 'null'
           format: int32
+          description: |-
+            SFU-assigned peer ID. `None` when the client is operating without an
+            SFU connection (e.g. relay-only mode or SFU not yet configured). The
+            `voice:join` broadcast fires regardless so other participants always see
+            the new participant's tile.
           minimum: 0
     ProfileResponse:
       type: object
