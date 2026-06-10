@@ -2292,9 +2292,9 @@ components:
         Minimal information about a voice channel participant.
 
         Clients use this to render participant avatars and names before any
-        media arrives. The SFU assigns its own `peer_id` per connection; we
-        don't include that here because clients only need the iroh connection
-        to the SFU, not per-peer node IDs.
+        media arrives, and `sfu_peer_id` to map media/control peer ids to a
+        user identity for peers who confirmed before the caller joined (their
+        `voice:join` broadcast pre-dates the caller's socket subscription).
       required:
       - user_id
       - picture
@@ -2307,6 +2307,15 @@ components:
         picture:
           type: string
           description: Avatar URL.
+        sfu_peer_id:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: |-
+            The peer's SFU/control-plane peer id (reported via `voice/confirm`).
+            `None` until they confirm.
+          minimum: 0
         user_id:
           type: string
           format: uuid
