@@ -12,6 +12,25 @@ servers:
 - url: http://127.0.0.1:8080
   description: local development
 paths:
+  /.well-known/apple-app-site-association:
+    get:
+      tags:
+      - well-known
+      summary: |-
+        Serves `/.well-known/apple-app-site-association`. Apple's authentication services
+        fetch this when an app declares `webcredentials:<rp_id>` in its associated-domains
+        entitlement; without it, native ASAuthorization reaches the OS sheet then fails
+        with a domain-not-associated error. Returned as bare JSON with no auth or redirect
+        (Apple's CDN requirements). Webview clients don't need this — they validate against
+        the WebAuthn `origins` list (see [`webauthn`]).
+      operationId: apple_app_site_association
+      responses:
+        '200':
+          description: Apple App Site Association (webcredentials)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppleAppSiteAssociation'
   /.well-known/webauthn:
     get:
       tags:
@@ -1255,6 +1274,47 @@ paths:
           description: space not found
       security:
       - token: []
+  /space/{space_id}/voice/relay-token:
+    post:
+      tags:
+      - space
+      summary: Re-mint ONLY the short-lived relay token for an in-progress call.
+      description: |-
+        The relay token has a 15-minute TTL (see [`Api::generate_relay_token`]); a call
+        that outlives it would have every NEW SFU connect (a resubscribe after loss, a
+        pipeline reconnect) rejected as expired. The client refreshes proactively at
+        ~TTL/2 by calling this — it re-verifies the user is still a community member
+        (so a removed user loses relay access on the next refresh, preserving the
+        short-lived-token security property) and mints a fresh token.
+
+        Unlike `voice/join` this has **no side effects**: it does not (re)register a
+        voice participant, bump the eviction generation, re-broadcast `voice:join`, or
+        collect the peer roster. It is a pure, idempotent membership-gated re-mint, safe
+        to call repeatedly for the lifetime of a call.
+      operationId: post_voice_relay_token
+      parameters:
+      - name: space_id
+        in: path
+        description: The voice space ID to re-mint a relay token for
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: re-minted relay token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelayTokenResponse'
+        '403':
+          description: not a community member
+        '404':
+          description: space not found
+        '500':
+          description: couldn't generate relay token
+      security:
+      - token: []
   /upload/attachment:
     post:
       tags:
@@ -1355,6 +1415,16 @@ paths:
       - token: []
 components:
   schemas:
+    AppleAppSiteAssociation:
+      type: object
+      description: |-
+        Apple App Site Association — authorizes native (macOS/iOS) apps to use passkeys
+        scoped to this relying-party domain.
+      required:
+      - webcredentials
+      properties:
+        webcredentials:
+          $ref: '#/components/schemas/WebCredentials'
     AttachmentModel:
       type: object
       description: An attachment associated with a message
@@ -2083,6 +2153,22 @@ components:
         refresh_token:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMThjNWI2ZS0wMDAwLTcwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0eXAiOiJyZWZyZXNoIn0.example
+    RelayTokenResponse:
+      type: object
+      description: |-
+        Response for re-minting a relay token mid-call (`voice/relay-token`).
+
+        Carries ONLY the fresh token — the client already has the relay URL and SFU
+        node id from its `voice/join`, and the roster is maintained over the live
+        control plane, so a refresh re-mints nothing else.
+      required:
+      - relay_token
+      properties:
+        relay_token:
+          type: string
+          description: |-
+            Short-lived HMAC-SHA256 token (15 min TTL), same format as
+            `VoiceJoinResponse::relay_token`: `{user_id}:{space_id}:{expiry}:{hex_mac}`.
     RoleOverwrite:
       type: object
       description: A single permission overwrite entry for a role.
@@ -2292,9 +2378,9 @@ components:
         Minimal information about a voice channel participant.
 
         Clients use this to render participant avatars and names before any
-        media arrives. The SFU assigns its own `peer_id` per connection; we
-        don't include that here because clients only need the iroh connection
-        to the SFU, not per-peer node IDs.
+        media arrives, and `sfu_peer_id` to map media/control peer ids to a
+        user identity for peers who confirmed before the caller joined (their
+        `voice:join` broadcast pre-dates the caller's socket subscription).
       required:
       - user_id
       - picture
@@ -2307,6 +2393,15 @@ components:
         picture:
           type: string
           description: Avatar URL.
+        sfu_peer_id:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: |-
+            The peer's SFU/control-plane peer id (reported via `voice/confirm`).
+            `None` until they confirm.
+          minimum: 0
         user_id:
           type: string
           format: uuid
@@ -2327,6 +2422,20 @@ components:
         rp_id:
           type: string
           example: hound.chat
+    WebCredentials:
+      type: object
+      description: |-
+        The `webcredentials` section: the `<TeamID>.<BundleID>` identifiers permitted to
+        use passkeys for this domain.
+      required:
+      - apps
+      properties:
+        apps:
+          type: array
+          items:
+            type: string
+          example:
+          - U6Z6284VJP.chat.hound.houndctl
   securitySchemes:
     refreshToken:
       type: http
