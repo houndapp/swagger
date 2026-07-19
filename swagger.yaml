@@ -44,6 +44,143 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebAuthnResponse'
+  /auth/identity:
+    get:
+      tags:
+      - auth
+      summary: Lists the signed-in account's login methods.
+      operationId: list_identities
+      responses:
+        '200':
+          description: linked login methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentitiesResponse'
+        '401':
+          description: not signed in
+      security:
+      - token: []
+  /auth/identity/email/link/finish:
+    post:
+      tags:
+      - auth
+      summary: Completes the email + passkey link ceremony.
+      operationId: link_email_finish
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkEmailFinishRequest'
+        required: true
+      responses:
+        '204':
+          description: email linked and passkey registered
+        '400':
+          description: no active link ceremony
+        '401':
+          description: not signed in and no valid ceremony token
+        '409':
+          description: email was claimed while the ceremony ran
+      security:
+      - token: []
+  /auth/identity/email/link/start:
+    post:
+      tags:
+      - auth
+      summary: |-
+        Starts linking an email + passkey to an account. The ceremony is ordinary
+        passkey registration; no new user or profile is created on finish.
+      operationId: link_email_start
+      requestBody:
+        description: Email to link and device display name for the new passkey
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkEmailStartRequest'
+        required: true
+      responses:
+        '200':
+          description: passkey registration challenge issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartRegisterResponse'
+        '401':
+          description: not signed in and no valid ceremony token
+        '409':
+          description: email already in use, or this account already has one
+      security:
+      - token: []
+  /auth/identity/email/link/token:
+    post:
+      tags:
+      - auth
+      summary: |-
+        Mints a scoped email-link ceremony token for the browser-deferred flow
+        (platforms with no system passkey provider). The hosted auth page uses it
+        in place of a session token — it authorises nothing else.
+      operationId: link_email_token
+      responses:
+        '200':
+          description: ceremony token minted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailLinkTokenResponse'
+        '401':
+          description: not signed in
+      security:
+      - token: []
+  /auth/identity/steam/link:
+    post:
+      tags:
+      - auth
+      summary: |-
+        Links a Steam identity to the signed-in account. Never merges: a Steam ID
+        already on another account is a conflict.
+      operationId: link_steam
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SteamLinkRequest'
+        required: true
+      responses:
+        '204':
+          description: steam identity linked (or already linked to this account)
+        '400':
+          description: expected exactly one of ticket / link_token
+        '401':
+          description: invalid credential or not signed in
+        '409':
+          description: steam id belongs to another account, or this account already has one
+      security:
+      - token: []
+  /auth/identity/{provider}:
+    delete:
+      tags:
+      - auth
+      summary: Unlinks a login method from the signed-in account.
+      operationId: unlink_identity
+      parameters:
+      - name: provider
+        in: path
+        description: login method to unlink
+        required: true
+        schema:
+          $ref: '#/components/schemas/IdentityProvider'
+      responses:
+        '204':
+          description: identity unlinked
+        '400':
+          description: removal would leave the account with no way to sign in
+        '401':
+          description: not signed in
+        '404':
+          description: no such identity on this account
+      security:
+      - token: []
   /auth/login/finish:
     post:
       tags:
@@ -183,6 +320,79 @@ paths:
           description: Invalid request body
         '500':
           description: Internal server error
+  /auth/steam/openid/verify:
+    post:
+      tags:
+      - auth
+      summary: Signs in with a Steam OpenID 2.0 assertion (browser flow via the auth service).
+      operationId: steam_openid_verify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SteamOpenIdVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: assertion verified; session or link_token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SteamLoginResponse'
+        '401':
+          description: steam rejected the assertion
+        '501':
+          description: steam login is not enabled on this instance
+        '502':
+          description: steam servers unreachable
+  /auth/steam/register:
+    post:
+      tags:
+      - auth
+      summary: Creates a new account for a Steam ID holding a valid link token.
+      operationId: steam_register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SteamRegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinishLoginResponse'
+        '401':
+          description: invalid or expired link token
+        '409':
+          description: steam id was linked to another account in the meantime
+  /auth/steam/session:
+    post:
+      tags:
+      - auth
+      summary: Signs in with a Steamworks auth session ticket (app launched through Steam).
+      operationId: steam_session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SteamSessionRequest'
+        required: true
+      responses:
+        '200':
+          description: ticket validated; session or link_token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SteamLoginResponse'
+        '401':
+          description: steam rejected the ticket, or the account is banned
+        '501':
+          description: steam login is not enabled on this instance
+        '502':
+          description: steam web api unreachable
   /auth/token/refresh:
     post:
       tags:
@@ -296,7 +506,7 @@ paths:
     delete:
       tags:
       - community
-      summary: 'Deletes a community with the given ID. TODO: verify user has permissions to delete community'
+      summary: Deletes a community with the given ID.
       operationId: delete_community
       parameters:
       - name: id
@@ -309,6 +519,10 @@ paths:
       responses:
         '200':
           description: community deleted
+        '403':
+          description: missing ManageCommunities instance permission
+        '404':
+          description: community not found
         '422':
           description: invalid community ID parameter
         '500':
@@ -490,6 +704,40 @@ paths:
           description: invalid community profile request
         '500':
           description: couldn't retrieve community profile
+      security:
+      - token: []
+  /community/{id}/reset:
+    post:
+      tags:
+      - community
+      summary: |-
+        Resets a community to the same default layout `POST /community` produces, while
+        preserving its ID and name. Every space, message, role, member, and community-scoped
+        profile is discarded; the caller becomes the sole member and sole `@organisers` member.
+      operationId: reset_community
+      parameters:
+      - name: id
+        in: path
+        description: The community ID to reset
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: community reset to a fresh default layout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityModel'
+        '403':
+          description: missing ManageCommunities instance permission
+        '404':
+          description: community not found
+        '422':
+          description: invalid community ID format
+        '500':
+          description: failed to reset community
       security:
       - token: []
   /community/{id}/role:
@@ -1663,6 +1911,14 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    EmailLinkTokenResponse:
+      type: object
+      description: A short-lived token authorising ONLY the email-link ceremony.
+      required:
+      - token
+      properties:
+        token:
+          type: string
     FinishLoginRequest:
       type: object
       description: Request body for completing passkey login
@@ -1765,6 +2021,39 @@ components:
           type: string
           format: uuid
           example: 018c5b6e-0000-7000-0000-000000000001
+    IdentitiesResponse:
+      type: object
+      required:
+      - identities
+      - passkey_count
+      properties:
+        identities:
+          type: array
+          items:
+            $ref: '#/components/schemas/IdentityEntry'
+        passkey_count:
+          type: integer
+          format: int64
+          description: Passkeys registered under the email identity.
+          minimum: 0
+    IdentityEntry:
+      type: object
+      description: One linked login method.
+      required:
+      - provider
+      - external_id
+      properties:
+        external_id:
+          type: string
+          description: Email address or SteamID64.
+        provider:
+          $ref: '#/components/schemas/IdentityProvider'
+    IdentityProvider:
+      type: string
+      description: How a user proves who they are. Stored in `identity`, one row per method.
+      enum:
+      - email
+      - steam
     InstanceModel:
       type: object
       required:
@@ -1788,6 +2077,52 @@ components:
       enum:
       - ManageCommunities
       - ManageInstance
+    LinkEmailFinishRequest:
+      type: object
+      description: |-
+        Request body for completing an email + passkey link on an existing account.
+        No `user_id`: the ceremony is keyed by the account that started it.
+      required:
+      - credential
+      properties:
+        ceremony_token:
+          type:
+          - string
+          - 'null'
+          description: Email-link ceremony token, when not sending a session bearer token.
+        credential:
+          type: object
+          description: An opaque object representing the completed challenge from the client for creating a passkey.
+          examples:
+          - id: credential-id
+            type: public-key
+            response:
+              clientDataJSON: base64
+              attestationObject: base64
+    LinkEmailStartRequest:
+      type: object
+      description: |-
+        Request body for starting an email + passkey link on an existing account.
+        Authorised by the session bearer token, OR — for the browser-deferred
+        ceremony (Linux) — by `ceremony_token`, a short-lived scoped token the app
+        mints and threads through the hosted auth page.
+      required:
+      - email
+      - display_name
+      properties:
+        ceremony_token:
+          type:
+          - string
+          - 'null'
+          description: Email-link ceremony token, when not sending a session bearer token.
+        display_name:
+          type: string
+          description: The name of the device registering the passkey.
+          example: MacBook Pro
+        email:
+          type: string
+          description: The email address to link.
+          example: user@hound.chat
     MergedProfile:
       type: object
       description: |-
@@ -2287,6 +2622,101 @@ components:
           type: string
           format: uuid
           description: The provisional user ID to supply when finishing registration.
+    SteamLinkRequest:
+      type: object
+      properties:
+        link_token:
+          type:
+          - string
+          - 'null'
+          description: '`link_token` from a `status: unknown` login response (browser link).'
+        ticket:
+          type:
+          - string
+          - 'null'
+          description: |-
+            Steamworks WebAPI ticket (in-Steam link). Exactly one of `ticket` /
+            `link_token` must be set.
+    SteamLoginResponse:
+      oneOf:
+      - type: object
+        description: 'The Steam ID is linked to an account: signed in.'
+        required:
+        - session
+        - status
+        properties:
+          session:
+            $ref: '#/components/schemas/FinishLoginResponse'
+          status:
+            type: string
+            enum:
+            - ok
+      - type: object
+        description: |-
+          The Steam ID is unknown. The client must choose: register a new account
+          (`/auth/steam/register`) or sign in and link (`/auth/identity/steam/link`),
+          authorising either with `link_token`.
+        required:
+        - link_token
+        - persona
+        - status
+        properties:
+          avatar_url:
+            type:
+            - string
+            - 'null'
+          link_token:
+            type: string
+          persona:
+            type: string
+          status:
+            type: string
+            enum:
+            - unknown
+      description: Result of authenticating with Steam.
+    SteamOpenIdVerifyRequest:
+      type: object
+      required:
+      - params
+      properties:
+        link:
+          type: boolean
+          description: |-
+            Link intent: the caller only wants proof of Steam-account ownership
+            (a `link_token`), never a session — even when the Steam ID is already
+            linked. Used by the settings "link Steam" browser flow.
+        params:
+          type: object
+          description: |-
+            The raw `openid.*` query params from Steam's return redirect, relayed
+            verbatim by the auth service. Verification happens here: the backend is
+            the trust root, and Steam honours one check per assertion.
+          additionalProperties:
+            type: string
+          propertyNames:
+            type: string
+    SteamRegisterRequest:
+      type: object
+      required:
+      - link_token
+      - name
+      properties:
+        link_token:
+          type: string
+          description: '`link_token` from a `status: unknown` login response.'
+        name:
+          type: string
+          description: Display name for the new account's global profile.
+    SteamSessionRequest:
+      type: object
+      required:
+      - ticket
+      properties:
+        ticket:
+          type: string
+          description: |-
+            Hex-encoded ticket from `GetAuthTicketForWebApi` (identity
+            "hound-backend-login").
     UploadResponse:
       type: object
       required:
