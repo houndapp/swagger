@@ -250,6 +250,77 @@ paths:
           description: malformed login email
         '500':
           description: failed to create login session
+  /auth/magic/register:
+    post:
+      tags:
+      - auth
+      summary: |-
+        Creates a new account for an email holding a valid `magic_register` link
+        token. Mirrors `steam::steam_register` exactly (see `Api::register_account`).
+      operationId: magic_register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicRegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinishLoginResponse'
+        '401':
+          description: invalid or expired link token
+        '409':
+          description: email was claimed while the ceremony ran
+        '501':
+          description: email login is not enabled on this instance
+  /auth/magic/start:
+    post:
+      tags:
+      - auth
+      summary: |-
+        Starts email magic-link login: mints a code, emails a link (+ the code for
+        manual entry). No account-existence oracle — see the module docs.
+      operationId: magic_start
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicStartRequest'
+        required: true
+      responses:
+        '202':
+          description: accepted — response is identical whether or not the email has an account
+        '429':
+          description: too many codes requested for this email recently
+        '501':
+          description: email login is not enabled on this instance
+  /auth/magic/verify:
+    post:
+      tags:
+      - auth
+      summary: 'Redeems a magic-link code (one-shot: consumed before use).'
+      operationId: magic_verify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: code redeemed; session or link_token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MagicVerifyResponse'
+        '401':
+          description: unknown, expired, or already-used code
+        '501':
+          description: email login is not enabled on this instance
   /auth/register/finish:
     post:
       tags:
@@ -2123,6 +2194,88 @@ components:
           type: string
           description: The email address to link.
           example: user@hound.chat
+    MagicCallback:
+      type: object
+      required:
+      - port
+      - state
+      properties:
+        port:
+          type: integer
+          format: int32
+          description: Loopback port the desktop app's local listener is bound to.
+          minimum: 0
+        state:
+          type: string
+          description: |-
+            Opaque value the app attaches to its request and expects echoed back
+            in the redirect, so it can match the redirect to this ceremony.
+    MagicRegisterRequest:
+      type: object
+      required:
+      - link_token
+      - display_name
+      properties:
+        display_name:
+          type: string
+          description: Display name for the new account's global profile.
+        link_token:
+          type: string
+          description: '`link_token` from a `status: unknown` verify response.'
+    MagicStartRequest:
+      type: object
+      required:
+      - email
+      properties:
+        callback:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/MagicCallback'
+            description: |-
+              Present when a same-device link click should redirect into the
+              desktop app's local loopback listener instead of just showing a
+              "you're signed in" page.
+        email:
+          type: string
+    MagicVerifyRequest:
+      type: object
+      required:
+      - code
+      properties:
+        code:
+          type: string
+    MagicVerifyResponse:
+      oneOf:
+      - type: object
+        description: 'The email is linked to an account: signed in.'
+        required:
+        - session
+        - status
+        properties:
+          session:
+            $ref: '#/components/schemas/FinishLoginResponse'
+          status:
+            type: string
+            enum:
+            - ok
+      - type: object
+        description: |-
+          The email is unknown. The client must register
+          (`/auth/magic/register`), authorising with `link_token`.
+        required:
+        - link_token
+        - email
+        - status
+        properties:
+          email:
+            type: string
+          link_token:
+            type: string
+          status:
+            type: string
+            enum:
+            - unknown
+      description: Result of redeeming a magic-link code.
     MergedProfile:
       type: object
       description: |-
