@@ -1080,7 +1080,11 @@ paths:
     post:
       tags:
       - instance
-      summary: Marks the instance as provisioned. Returns 409 if already provisioned.
+      summary: |-
+        Marks the instance as provisioned. First-wins-atomic under concurrent
+        callers: the write is a single conditional `UPDATE ... WHERE provisioned =
+        false`, so exactly one concurrent caller's rows-affected count is 1 (the
+        rest see 0 and 409). Returns 409 if already provisioned.
       operationId: post_provision
       requestBody:
         content:
@@ -1103,7 +1107,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InstanceModel'
         '409':
-          description: instance already provisioned
+          description: instance already provisioned by a concurrent caller; GET /instance for the settled value
         '500':
           description: failed to provision instance
       security:
