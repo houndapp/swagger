@@ -2939,16 +2939,16 @@ components:
         relay_token:
           type: string
           description: |-
-            Short-lived HMAC-SHA256 token (15 min TTL) that proves this user
-            may connect to the SFU for the given voice channel.
+            Short-lived HMAC-SHA256 token (15 min TTL) that proves this user may
+            connect to the SFU for the given voice channel.
 
             Format: `{user_id}:{space_id}:{expiry_unix_secs}:{hex_mac}`
         relay_url:
           type: string
           description: |-
-            iroh relay URL. Clients must not hardcode this value — use whatever
-            the server returns here so that changing relay infrastructure only
-            requires a backend deploy, not a client release.
+            iroh relay URL. Clients must not hardcode this value — use whatever the
+            server returns here so that changing relay infrastructure only requires
+            a backend deploy, not a client release.
         sfu_node_id:
           type:
           - string
@@ -2956,18 +2956,18 @@ components:
           description: |-
             iroh node ID of the SFU (hex-encoded public key).
 
-            `None` when the backend is not configured with `SFU_NODE_ID` (e.g.
-            in development without a running SFU). Clients skip the direct QUIC
+            `None` when the backend is not configured with `SFU_NODE_ID` (e.g. in
+            development without a running SFU). Clients skip the direct QUIC
             connection when this is absent.
     VoicePeerInfo:
       type: object
       description: |-
         Minimal information about a voice channel participant.
 
-        Clients use this to render participant avatars and names before any
-        media arrives, and `sfu_peer_id` to map media/control peer ids to a
-        user identity for peers who confirmed before the caller joined (their
-        `voice:join` broadcast pre-dates the caller's socket subscription).
+        Clients use this to render participant avatars and names before any media
+        arrives, and `sfu_peer_id` to map media/control peer ids to a user identity
+        for peers who confirmed before the caller joined (their `voice:join`
+        broadcast pre-dates the caller's socket subscription).
       required:
       - user_id
       - picture
