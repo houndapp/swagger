@@ -1184,6 +1184,30 @@ paths:
           description: Upload not found
       security:
       - token: []
+  /realtime/config:
+    get:
+      tags:
+      - realtime
+      summary: How to reach the realtime plane.
+      description: |-
+        A client calls this once at startup: a `webtransport_url` means "try
+        WebTransport first, fall back to the WebSocket if it fails"; its absence
+        means "go straight to the WebSocket". `cert_hash` is present only when the
+        endpoint runs a self-signed certificate (development) and is the SHA-256
+        digest the client must pin — in production the endpoint carries a real
+        certificate and the field is absent.
+      operationId: get_realtime_config
+      responses:
+        '200':
+          description: how to reach the realtime plane
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealtimeConfig'
+        '401':
+          description: missing or invalid access token
+      security:
+      - token: []
   /space:
     get:
       tags:
@@ -1400,7 +1424,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteCommunitySpaceMessage'
         '422':
-          description: invalid message request body
+          description: empty message, or over the length limit
         '500':
           description: couldn't post message
       security:
@@ -1445,7 +1469,7 @@ paths:
         '404':
           description: message not found
         '422':
-          description: invalid message contents
+          description: empty message, or over the length limit
         '500':
           description: couldn't update message
       security:
@@ -2626,6 +2650,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InstancePermission'
+    RealtimeConfig:
+      type: object
+      description: |-
+        Response for `GET /realtime/config`: how to reach the realtime plane.
+
+        The client reads this once at startup. `webtransport_url` present means "try
+        WebTransport, fall back to the WebSocket on failure"; absent means the
+        instance runs no WebTransport endpoint and the WebSocket is the only leg.
+        `cert_hash` is the SHA-256 digest (dotted lowercase hex) the client must pin
+        — present only for a self-signed development endpoint; a production endpoint
+        carries a CA-issued certificate and omits it.
+      properties:
+        cert_hash:
+          type:
+          - string
+          - 'null'
+        webtransport_url:
+          type:
+          - string
+          - 'null'
+          example: https://rt.hound.chat/realtime
     RefreshTokenResponse:
       type: object
       description: Response body containing a new access token and refresh token
@@ -3041,6 +3086,8 @@ tags:
   description: Community API endpoints
 - name: profile
   description: Profile endpoints
+- name: realtime
+  description: Realtime plane endpoints
 - name: space
   description: Community space endpoints
 - name: upload
