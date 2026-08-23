@@ -1692,6 +1692,13 @@ paths:
           description: Multipart parse failure
       security:
       - token: []
+    options:
+      tags:
+      - upload
+      operationId: options_attachment
+      responses:
+        '204':
+          description: Accepted media types, in `Accept-Post`
   /upload/avatar:
     post:
       tags:
@@ -1724,6 +1731,13 @@ paths:
           description: Multipart parse failure
       security:
       - token: []
+    options:
+      tags:
+      - upload
+      operationId: options_avatar
+      responses:
+        '204':
+          description: Accepted media types, in `Accept-Post`
   /user/community:
     get:
       tags:
