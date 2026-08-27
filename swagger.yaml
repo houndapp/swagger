@@ -1059,6 +1059,37 @@ paths:
                   $ref: '#/components/schemas/RoleResponse'
       security:
       - token: []
+  /embed/debug:
+    post:
+      tags:
+      - embed
+      summary: Unfurl one URL and report everything the pipeline saw.
+      description: |-
+        Backs the embed debugger in the client's developer settings. Available to any
+        signed-in user, deliberately: posting a message already makes this service
+        fetch a URL of your choosing, so the debugger grants no capability that
+        sending a message does not — it only *shows* you what happened.
+
+        What it does add is an **uncached** fetch, so it is rate limited per user.
+      operationId: post_embed_debug
+      requestBody:
+        description: The URL to unfurl
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedDebugRequest'
+        required: true
+      responses:
+        '200':
+          description: the unfurl trace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedDebugReport'
+        '429':
+          description: too many debug unfurls; wait and retry
+      security:
+      - token: []
   /instance:
     get:
       tags:
@@ -1865,6 +1896,7 @@ components:
       - user_id
       - contents
       - attachments
+      - embeds
       properties:
         attachments:
           type: array
@@ -1879,6 +1911,11 @@ components:
           - 'null'
           format: int64
           description: Unix timestamp (ms) of the last edit, or null if never edited.
+        embeds:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkEmbed'
+          description: Link previews, in the order their URLs appear in `contents`.
         id:
           type: string
           format: uuid
@@ -1996,6 +2033,7 @@ components:
       - contents
       - profile
       - attachments
+      - embeds
       properties:
         attachments:
           type: array
@@ -2010,6 +2048,17 @@ components:
           - 'null'
           format: int64
           description: Unix timestamp (ms) of the last edit, or null if never edited.
+        embeds:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkEmbed'
+          description: |-
+            Link previews for the URLs in `contents`.
+
+            Empty on a fresh post: unfurling is a round-trip against a third party
+            and happens after this response (see `api::embed::unfurl`), arriving as a
+            realtime `message_embeds_updated`. Non-empty here on a history read, and
+            on an edit of a message that already had previews.
         id:
           type: string
           format: uuid
@@ -2032,6 +2081,290 @@ components:
       properties:
         token:
           type: string
+    EmbedAuthor:
+      type: object
+      description: 'A byline: oEmbed `author_name`/`author_url`, or `article:author`.'
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        url:
+          type:
+          - string
+          - 'null'
+          description: |-
+            The author's page. `http(s)` only — anything else is dropped at parse
+            time rather than handed to a client that would make it tappable.
+    EmbedDebugReport:
+      type: object
+      description: |-
+        Everything the unfurl of one URL saw and decided — the embed debugger's
+        payload.
+
+        Deliberately not what a message carries: this is the working-out, and some of
+        it ([`oembed_html`](Self::oembed_html)) is markup that must never reach a
+        renderer. The debugger shows it as **escaped source text**.
+      required:
+      - request_url
+      - cached
+      - elapsed_ms
+      properties:
+        cached:
+          type: boolean
+          description: |-
+            Whether this answer came from the shared unfurl cache. The debugger always
+            bypasses it on the way in, so this reports what a *message* would have
+            hit.
+        elapsed_ms:
+          type: integer
+          format: int32
+          minimum: 0
+        embed:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/LinkEmbed'
+            description: What a message would render, or `None` if this link unfurls to nothing.
+        error:
+          type:
+          - string
+          - 'null'
+          description: |-
+            Why there is no embed. `None` with no embed means "fetched fine, nothing
+            worth showing".
+        oembed_endpoint:
+          type:
+          - string
+          - 'null'
+          description: The oEmbed endpoint discovered via `<link rel="alternate">`, if any.
+        oembed_html:
+          type:
+          - string
+          - 'null'
+          description: |-
+            oEmbed's `html` player markup, verbatim. **Never rendered** — shown as
+            source so an operator can see what a site is offering.
+        raw:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbedRawField'
+          description: Every metadata key seen, whether or not it won.
+        request_url:
+          type: string
+          description: The URL as typed into the debugger.
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbedFetchStep'
+          description: Every HTTP hop, in order.
+        warnings:
+          type: array
+          items:
+            type: string
+          description: |-
+            Non-fatal observations: a dropped `javascript:` URL, an image over the
+            gallery cap, a malformed timestamp.
+    EmbedDebugRequest:
+      type: object
+      description: Request body for `POST /embed/debug`.
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          example: https://example.com
+    EmbedFetchStep:
+      type: object
+      description: |-
+        One HTTP hop the unfurl made. Redirects appear as their own entries, which is
+        what makes "this link goes somewhere else" visible in the debugger.
+      required:
+      - url
+      - elapsed_ms
+      properties:
+        bytes:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: |-
+            Bytes read from this hop. `u32` rather than `u64` because every fetch is
+            capped in single-digit megabytes, and the narrower type crosses the
+            FRB bridge as a plain Dart `int`.
+          minimum: 0
+        content_type:
+          type:
+          - string
+          - 'null'
+        elapsed_ms:
+          type: integer
+          format: int32
+          minimum: 0
+        error:
+          type:
+          - string
+          - 'null'
+          description: Why this hop stopped the unfurl, if it did.
+        resolved_ip:
+          type:
+          - string
+          - 'null'
+          description: |-
+            The IP the guard resolved and pinned the connection to. Present even on a
+            refusal — a blocked hop's address is exactly what you want to see.
+        status:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 0
+        url:
+          type: string
+    EmbedKind:
+      type: string
+      description: |-
+        What a link turned out to be. Drives layout, not trust: every variant is
+        rendered from the same sanitised fields.
+
+        Derived from oEmbed's `type` where one was found, else from the Open Graph
+        `og:type` / Twitter `twitter:card` pair, else [`EmbedKind::Link`].
+      enum:
+      - link
+      - article
+      - photo
+      - video
+      - audio
+      - rich
+      - profile
+    EmbedMedia:
+      type: object
+      description: |-
+        One image, audio track, or video the embed refers to.
+
+        [`url`](Self::url) is the **only** URL a renderer should load. It addresses
+        this deployment's media proxy, which re-fetches the origin under the same
+        SSRF guard the unfurl itself ran under, caps the payload, and answers from a
+        cache — so a client's IP never reaches the linked site and a hot embed
+        cannot be turned into an amplifier against its origin.
+
+        It is **relative** on the wire (`/embed/media/{embed}/{key}`). The client
+        resolves it against its configured API base at decode time, which keeps the
+        backend from needing to know its own public URL.
+      required:
+      - url
+      - source_url
+      properties:
+        alt:
+          type:
+          - string
+          - 'null'
+          description: '`og:image:alt` / `twitter:image:alt`, for screen readers.'
+        content_type:
+          type:
+          - string
+          - 'null'
+          description: |-
+            The origin's `Content-Type`, once the proxy has seen the bytes. `None`
+            before the first proxy fetch: the unfurl learns a media URL from markup,
+            not from a request.
+        height:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: Declared pixel height. Same caveat as [`width`](Self::width).
+          minimum: 0
+        source_url:
+          type: string
+          description: |-
+            Where the proxy got it. Attribution and debugging only — never fetched
+            by a client.
+        url:
+          type: string
+          description: Proxy URL, relative to the API base. The one to fetch.
+          example: /embed/media/018c.../image-0
+        width:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: |-
+            Declared pixel width (`og:image:width`, oEmbed `thumbnail_width`, …).
+            Advisory: it lets a client reserve the right box before the bytes land,
+            and it is the *publisher's* claim, not a measurement.
+          minimum: 0
+    EmbedProvider:
+      type: object
+      description: 'The publishing service: oEmbed `provider_name`/`provider_url`.'
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        url:
+          type:
+          - string
+          - 'null'
+    EmbedRawField:
+      type: object
+      description: One raw key/value the parser saw, before precedence was applied.
+      required:
+      - source
+      - key
+      - value
+      properties:
+        key:
+          type: string
+        source:
+          $ref: '#/components/schemas/EmbedSource'
+        value:
+          type: string
+    EmbedSource:
+      type: string
+      description: |-
+        Which metadata vocabulary a value came from. The debugger colour-codes by
+        this, so "why did the title come out like that" is answerable at a glance.
+      enum:
+      - open_graph
+      - twitter_card
+      - o_embed
+      - html
+      - derived
+    EmbedVideo:
+      type: object
+      description: |-
+        The embed's video, when it has one.
+
+        Split from [`EmbedMedia`] for one field: [`playable`](Self::playable). Open
+        Graph uses `og:video` for *both* a direct media file and an iframe player,
+        distinguished only by `og:video:type`, and confusing the two is how a
+        renderer ends up trying to decode a page of HTML as a video stream.
+      required:
+      - media
+      - playable
+      properties:
+        duration_secs:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          description: |-
+            Duration in seconds where the source declared one (oEmbed `duration`,
+            `og:video:duration`, `music:duration`).
+          minimum: 0
+        media:
+          $ref: '#/components/schemas/EmbedMedia'
+          description: The video itself, proxied like every othermedia reference.
+        playable:
+          type: boolean
+          description: |-
+            Whether [`media`](Self::media) is a **direct video file** the client may
+            hand to a player.
+
+            True only for a `video/*` content type. An iframe player
+            (`og:video:type=text/html`, `twitter:player`) is false: it is a web page,
+            and this client renders no remote HTML. A false video still carries its
+            poster and opens externally.
     FinishLoginRequest:
       type: object
       description: Request body for completing passkey login
@@ -2236,6 +2569,93 @@ components:
           type: string
           description: The email address to link.
           example: user@hound.chat
+    LinkEmbed:
+      type: object
+      description: |-
+        The unfurled preview of one URL, ready to render.
+
+        Additive by construction: every field after the first three is optional or
+        defaulted, so a client built against an older field set still decodes a
+        newer server's embed (see the compatibility rules on the realtime protocol).
+      required:
+      - request_url
+      - url
+      properties:
+        accent_color:
+          type:
+          - string
+          - 'null'
+          description: |-
+            The page's `theme-color`, as `#rrggbb`. Tints the card's accent rail.
+            Validated to exactly that form — a client can parse it with confidence.
+        audio:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/EmbedMedia'
+        author:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/EmbedAuthor'
+        description:
+          type:
+          - string
+          - 'null'
+          description: |-
+            Summary text. Newlines survive (a publisher's paragraph breaks are
+            meaningful); every other control character does not.
+        favicon:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/EmbedMedia'
+            description: The site's icon, proxied like any other media.
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbedMedia'
+          description: |-
+            Every `og:image` the page declared, in document order, capped at
+            [`MAX_EMBED_IMAGES`]. The first is the primary/poster; the rest render as
+            a gallery. Empty is normal.
+        kind:
+          $ref: '#/components/schemas/EmbedKind'
+        locale:
+          type:
+          - string
+          - 'null'
+          description: '`og:locale`, e.g. `en_GB`.'
+        provider:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/EmbedProvider'
+        published_at:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: '`article:published_time`, as unix milliseconds.'
+        request_url:
+          type: string
+          description: |-
+            The URL **as it appeared in the message**. This is what a client
+            highlights in the body text, and what pairs an embed with its link.
+        site_name:
+          type:
+          - string
+          - 'null'
+          description: '`og:site_name`, else the registrable domain.'
+        title:
+          type:
+          - string
+          - 'null'
+        url:
+          type: string
+          description: |-
+            Where the fetch actually ended up: redirects followed, then `og:url` /
+            oEmbed `url` if the page declared a canonical form. What a click opens.
+        video:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/EmbedVideo'
     MagicCallback:
       type: object
       required:
@@ -3098,6 +3518,8 @@ tags:
   description: Auth API endpoints
 - name: community
   description: Community API endpoints
+- name: embed
+  description: Link embed endpoints
 - name: profile
   description: Profile endpoints
 - name: realtime
